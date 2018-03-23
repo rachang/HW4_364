@@ -181,25 +181,42 @@ class CollectionCreateForm(FlaskForm):
 
 def get_gifs_from_giphy(search_string):
     """ Returns data from Giphy API with up to 5 gifs corresponding to the search input"""
-    baseurl = "https://api.giphy.com/v1/gifs/search"
-    pass # Replace with code
+    # baseurl = "https://api.giphy.com/v1/gifs/search"
+    # Replace with code
     # TODO 364: This function should make a request to the Giphy API using the input search_string, and your api_key (imported at the top of this file)
     # Then the function should process the response in order to return a list of 5 gif dictionaries.
     # HINT: You'll want to use 3 parameters in the API request -- api_key, q, and limit. You may need to do a bit of nested data investigation and look for API documentation.
     # HINT 2: test out this function outside your Flask application, in a regular simple Python program, with a bunch of print statements and sample invocations, to make sure it works!
-
+    baseurl = "https://api.giphy.com/v1/gifs/search?q={}&api_key={}&limit=5".format(search_string, api_key)
+    response = requests.get(baseurl)
+    gifInResponse = json.loads(response.text)['data']
+    listofgifs = []
+    newdict = {}
+    for gif in gifInResponse:
+        newdict[gif["title"]] = gif["embed_url"]
+    listofgifs.append(newdict)
+    return listofgifs
 # Provided
 def get_gif_by_id(id):
     """Should return gif object or None"""
     g = Gif.query.filter_by(id=id).first()
     return g
 
-def get_or_create_gif(title, url):
+def get_or_create_gif(db_session, title, url):
     """Always returns a Gif instance"""
-    pass # Replace with code
+    # Replace with code
     # TODO 364: This function should get or create a Gif instance. Determining whether the gif already exists in the database should be based on the gif's title.
-
-def get_or_create_search_term(term):
+    gif = db_session.query(Gif).filter_by(title=title).first()
+    if gif:
+        print("Found Gif")
+        return gif
+    else:
+        print("Adding Gif")
+        gif = Gif(title=tile, embedURL=url)
+        db_session.add(gif)
+        db_session.commit()
+        return gif
+def get_or_create_search_term(db_session, term):
     """Always returns a SearchTerm instance"""
     # TODO 364: This function should return the search term instance if it already exists.
 
@@ -213,10 +230,24 @@ def get_or_create_search_term(term):
     # And the SearchTerm instance that was got or created should be returned.
 
     # HINT: I recommend using print statements as you work through building this function and use it in invocations in view functions to ensure it works as you expect!
+    search_term = db_session.query(SearchTerm).filter_by(term=term).first()
+    if search_term:
+        print("Found Term")   
+        return search_term
+    else:
+        print("Added Term") 
+        search_term = SearchTerm(term=term)
+        gif_list = get_gifs_from_giphy(search_term)
+        for g in gif_list:
+            gif = get_or_create_gif(g[0], g[1])
+            search_term.gifs.append(gif)
+        db_session.add(search_term)
+        db_session.commit()
+        return search_term
 
-def get_or_create_collection(name, current_user, gif_list=[]):
+def get_or_create_collection(db_session, name, current_user, gif_list=[]):
     """Always returns a PersonalGifCollection instance"""
-    pass # Replace with code
+    # Replace with code
 
     # TODO 364: This function should get or create a personal gif collection. Uniqueness of the gif collection should be determined by the name of the collection and the id of the logged in user.
 
@@ -224,6 +255,16 @@ def get_or_create_collection(name, current_user, gif_list=[]):
 
     # However, if no such collection exists, a new PersonalGifCollection instance should be created, and each Gif in the gif_list input should be appended to it (remember, there exists a many to many relationship between Gifs and PersonalGifCollections).
     # HINT: You can think of a PersonalGifCollection like a Playlist, and Gifs like Songs.
+    gif_collection = db_session.query(PersonalGifCollection).filter_by(name=name, user_id=current_user.id).first()
+    if gif_collection:
+        return gif_collection
+    else:
+        gif_collection = PersonalGifCollection(name=name, user_id=current_user.id, gifs=[])
+        for g in gif_list:
+            gif_collection.gifs.append(g)
+        db_session.add(gif_collection)
+        db_session.commit()
+        return gif_collection
 
 
 
