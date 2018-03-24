@@ -212,7 +212,7 @@ def get_or_create_gif(db_session, title, url):
         return gif
     else:
         print("Adding Gif")
-        gif = Gif(title=tile, embedURL=url)
+        gif = Gif(title=title, embedURL=url)
         db_session.add(gif)
         db_session.commit()
         return gif
@@ -237,10 +237,11 @@ def get_or_create_search_term(db_session, term):
     else:
         print("Added Term") 
         search_term = SearchTerm(term=term)
-        gif_list = get_gifs_from_giphy(search_term)
+        gif_list = get_gifs_from_giphy(term)
         for g in gif_list:
-            gif = get_or_create_gif(g[0], g[1])
-            search_term.gifs.append(gif)
+            for key, value in g.items():
+                gif = get_or_create_gif(db.session, key, value)
+                search_term.gifs.append(gif)
         db_session.add(search_term)
         db_session.commit()
         return search_term
@@ -326,6 +327,10 @@ def index():
     # invoke get_or_create_search_term on the form input and redirect to the function corresponding to the path /gifs_searched/<search_term> in order to see the results of the gif search. (Just a couple lines of code!)
 
     # HINT: invoking url_for with a named argument will send additional data. e.g. url_for('artist_info',artist='solange') would send the data 'solange' to a route /artist_info/<artist>
+    form = GifSearchForm()
+    if form.validate_on_submit():
+        search_term = get_or_create_search_term(db.session, term=form.search.data)
+        return redirect("/gifs_searched/"+search_term.term)
     return render_template('index.html',form=form)
 
 # Provided
