@@ -342,11 +342,12 @@ def search_results(search_term):
 
 @app.route('/search_terms')
 def search_terms():
-    pass # Replace with code
+    # Replace with code
     # TODO 364: Edit this view function so it renders search_terms.html.
     # That template should show a list of all the search terms that have been searched so far. Each one should link to the gifs that resulted from that search.
     # HINT: All you have to do is make the right query in this view function and send the right data to the template! You can complete this in two lines. Check out the template for more hints!
-
+    term = SearchTerm.query.all()
+    return render_template('search_terms.html', all_terms = term)
 # Provided
 @app.route('/all_gifs')
 def all_gifs():
@@ -362,12 +363,19 @@ def create_collection():
     form.gif_picks.choices = choices
     # TODO 364: If the form validates on submit, get the list of the gif ids that were selected from the form. Use the get_gif_by_id function to create a list of Gif objects.  Then, use the information available to you at this point in the function (e.g. the list of gif objects, the current_user) to invoke the get_or_create_collection function, and redirect to the page that shows a list of all your collections.
     # If the form is not validated, this view function should simply render the create_collection.html template and send the form to the template.
-
+    if form.validate_on_submit():
+        gif_list = []
+        for choice in choices:
+            gif_list.append(get_gif_by_id(choice[0]))
+        collection = get_or_create_collection(db.session, form.name.data, current_user, gif_list)
+        return redirect(url_for("collections"))
+    else:
+        return render_template('create_collection.html', form = form)
 
 @app.route('/collections',methods=["GET","POST"])
 @login_required
 def collections():
-    pass # Replace with code
+    # Replace with code
     # TODO 364: This view function should render the collections.html template so that only the current user's personal gif collection links will render in that template. Make sure to examine the template so that you send it the correct data!
 
 # Provided
